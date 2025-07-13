@@ -13,12 +13,16 @@ export class EmployeeService {
 
   }
 
-  getAllEmployees():Observable<ResponseData<IEmployee[]>>{
+  getAllEmployees(page: number = 0, size: number = 10):Observable<ResponseData<IEmployee[]>>{
     var reqHeader = new HttpHeaders({
       'Content-Type': 'application/json'
     });
 
-    return this.httpClient.get(`${environment.API_ROOT}/v1/employees`, {headers:reqHeader});
+    const url = `${environment.API_ROOT}/v1/employees?page=${page}&size=${size}`;
+    console.log('Service: Making GET request to', url);
+    const observable = this.httpClient.get(url, {headers:reqHeader});
+    console.log('Service: Observable created, returning...');
+    return observable;
   }
   
   createEmployee(req: IEmployee): Observable<ResponseData<IEmployee>> {
