@@ -1,14 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NgClass, NgIf, NgFor, DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { EmployeeService } from '../services/EmployeeService';
-import { IEmployee } from '../models/Employee';
+import { IEmployee, IEmployeeSearchCriteria } from '../models/Employee';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [ReactiveFormsModule, NgClass, NgIf, NgFor, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, NgClass, NgIf, NgFor, DatePipe],
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
@@ -17,6 +16,11 @@ export class HomeComponent implements OnInit {
   loading: boolean = false;
   saving: boolean = false;
   private fetching: boolean = false;
+  
+  // Search functionality
+  isSearchMode: boolean = false;
+  searchCriteria: IEmployeeSearchCriteria = {};
+  showSearchPanel: boolean = false;
   
   // Pagination properties
   currentPage: number = 0;
@@ -27,6 +31,7 @@ export class HomeComponent implements OnInit {
   hasPrevious: boolean = false;
 
   employeeForm: FormGroup;
+  searchForm: FormGroup;
   editingIndex: number | null = null;
 
   constructor(private fb: FormBuilder, private service: EmployeeService, private cdr: ChangeDetectorRef) {
@@ -37,6 +42,16 @@ export class HomeComponent implements OnInit {
       gender: ['', Validators.required],
       dob: ['', Validators.required],
       birthPlace: ['', Validators.required]
+    });
+
+    this.searchForm = this.fb.group({
+      name: [''],
+      gender: [''],
+      minAge: [''],
+      maxAge: [''],
+      birthPlace: [''],
+      dobFrom: [''],
+      dobTo: ['']
     });
   }
 
@@ -56,31 +71,14 @@ export class HomeComponent implements OnInit {
     console.log('Loading state set to true');
     console.log('Fetching page:', page);
 
-    // Add a timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (this.loading) {
-        console.error('Request timeout - forcing loading to false');
-        this.loading = false;
-        this.fetching = false;
-        alert('Loading employees timed out. Please check your backend/API.');
-        this.cdr.detectChanges(); // Force change detection
-      }
-    }, 10000); // 10 seconds timeout
 
-    console.log('Making API call to getAllEmployees...');
+
     this.service.getAllEmployees(page, this.pageSize).subscribe({
       next: (response) => {
-        console.log('=== API RESPONSE RECEIVED ===');
-        clearTimeout(timeout);
         try {
-          console.log('Raw response:', response);
-          console.log('Response type:', typeof response);
-          console.log('Response content:', response?.content);
-          console.log('Content is array:', Array.isArray(response?.content));
           
           if (response && response.content && Array.isArray(response.content)) {
             this.people = response.content as IEmployee[];
-            console.log(`Successfully loaded ${this.people.length} employees`);
             
             // Update pagination info
             this.currentPage = response.number || 0;
@@ -114,19 +112,15 @@ export class HomeComponent implements OnInit {
           this.people = [];
         }
         
-        console.log('Setting loading to false...');
         this.loading = false;
         this.fetching = false;
         console.log('=== FETCH EMPLOYEES COMPLETED ===');
         this.cdr.detectChanges(); // Force change detection
       },
       error: (error) => {
-        console.log('=== API ERROR RECEIVED ===');
-        clearTimeout(timeout);
         this.people = [];
         this.loading = false;
         this.fetching = false;
-        console.log('=== FETCH EMPLOYEES FAILED ===');
         this.cdr.detectChanges(); // Force change detection
       }
     });
@@ -232,12 +226,6 @@ export class HomeComponent implements OnInit {
   }
 
   // Pagination methods
-  goToPage(page: number) {
-    if (page >= 0 && page < this.totalPages) {
-      this.fetchEmployees(page);
-    }
-  }
-
   nextPage() {
     if (this.hasNext) {
       this.goToPage(this.currentPage + 1);
@@ -261,6 +249,102 @@ export class HomeComponent implements OnInit {
     }
     
     return pages;
+  }
+
+  // Search functionality methods
+  toggleSearchPanel() {
+    this.showSearchPanel = !this.showSearchPanel;
+    if (!this.showSearchPanel) {
+      this.clearSearch();
+    }
+  }
+
+  performSearch() {
+    if (this.searchForm.invalid) {
+      return;
+    }
+
+    this.searchCriteria = { ...this.searchForm.value };
+    this.isSearchMode = true;
+    this.currentPage = 0; // Reset to first page for new search
+    this.searchEmployees();
+  }
+
+  searchEmployees(page: number = 0) {
+    if (this.fetching) {
+      console.log('Already fetching employees, skipping...');
+      return;
+    }
+
+    this.fetching = true;
+    this.loading = true;
+    console.log('=== SEARCH EMPLOYEES START ===');
+    console.log('Search criteria:', this.searchCriteria);
+    console.log('Searching page:', page);
+
+
+
+    this.service.searchEmployees(this.searchCriteria, page, this.pageSize).subscribe({
+      next: (response) => {
+        console.log('=== SEARCH RESPONSE RECEIVED ===');
+        try {
+          console.log('Search response:', response);
+          
+          if (response && response.content && Array.isArray(response.content)) {
+            this.people = response.content as IEmployee[];
+            console.log(`Search found ${this.people.length} employees`);
+            
+            // Update pagination info
+            this.currentPage = response.number || 0;
+            this.pageSize = response.size || 10;
+            this.totalElements = response.totalElements || 0;
+            this.totalPages = response.totalPages || 0;
+            this.hasNext = response.last === false;
+            this.hasPrevious = response.first === false;
+          } else {
+            console.warn('Invalid search response structure:', response);
+            this.people = [];
+          }
+        } catch (e) {
+          console.error('Exception in search handler:', e);
+          alert('Error processing search results. See console for details.');
+          this.people = [];
+        }
+        
+        this.loading = false;
+        this.fetching = false;
+        console.log('=== SEARCH EMPLOYEES COMPLETED ===');
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.log('=== SEARCH ERROR RECEIVED ===');
+        console.error('Search error:', error);
+        this.people = [];
+        this.loading = false;
+        this.fetching = false;
+        alert('Search failed. Please try again.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  clearSearch() {
+    this.searchForm.reset();
+    this.searchCriteria = {};
+    this.isSearchMode = false;
+    this.currentPage = 0;
+    this.fetchEmployees(); // Fetch all employees
+  }
+
+  // Override pagination methods to handle search mode
+  goToPage(page: number) {
+    if (page >= 0 && page < this.totalPages) {
+      if (this.isSearchMode) {
+        this.searchEmployees(page);
+      } else {
+        this.fetchEmployees(page);
+      }
+    }
   }
 
   // Make Math available in template

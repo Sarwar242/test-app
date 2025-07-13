@@ -12,14 +12,159 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
             </svg>
             Employee Directory
+            <span *ngIf="isSearchMode" class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">
+              Search Results ({{ totalElements }})
+            </span>
           </h2>
-          <!-- <button
-            (click)="testApi()"
-            class="bg-red-500 bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200"
-          >
-            Test API
-          </button> -->
+          <div class="flex gap-2">
+            <button
+              (click)="toggleSearchPanel()"
+              [class]="showSearchPanel ? 'bg-white bg-opacity-30 text-indigo-800' : 'bg-white bg-opacity-20 hover:bg-opacity-30  text-indigo-800'"
+              class="px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              {{ showSearchPanel ? 'Hide Search' : 'Search' }}
+            </button>
+            <button
+              *ngIf="isSearchMode"
+              (click)="clearSearch()"
+              class="bg-red-500 bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              Clear Search
+            </button>
+          </div>
         </div>
+      </div>
+
+      <!-- Search Panel -->
+      <div *ngIf="showSearchPanel" class="border-b border-gray-200 bg-gray-50 p-4">
+        <form [formGroup]="searchForm" (ngSubmit)="performSearch()" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            <!-- Name Search -->
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Name
+              </label>
+              <input
+                formControlName="name"
+                type="text"
+                placeholder="Search by name..."
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 focus:outline-none text-gray-900 placeholder-gray-400"
+              />
+            </div>
+
+            <!-- Gender Search -->
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Gender
+              </label>
+              <select
+                formControlName="gender"
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 focus:outline-none text-gray-900 bg-white"
+              >
+                <option value="">All Genders</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <!-- Birth Place Search -->
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Birth Place
+              </label>
+              <input
+                formControlName="birthPlace"
+                type="text"
+                placeholder="Search by birth place..."
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 focus:outline-none text-gray-900 placeholder-gray-400"
+              />
+            </div>
+
+            <!-- Age Range -->
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Min Age
+              </label>
+              <input
+                formControlName="minAge"
+                type="number"
+                placeholder="Minimum age"
+                min="0"
+                max="120"
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 focus:outline-none text-gray-900 placeholder-gray-400"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Max Age
+              </label>
+              <input
+                formControlName="maxAge"
+                type="number"
+                placeholder="Maximum age"
+                min="0"
+                max="120"
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 focus:outline-none text-gray-900 placeholder-gray-400"
+              />
+            </div>
+
+            <!-- Date of Birth Range -->
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Birth Date From
+              </label>
+              <input
+                formControlName="dobFrom"
+                type="date"
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 focus:outline-none text-gray-900"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Birth Date To
+              </label>
+              <input
+                formControlName="dobTo"
+                type="date"
+                class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 focus:outline-none text-gray-900"
+              />
+            </div>
+          </div>
+
+          <!-- Search Actions -->
+          <div class="flex gap-2 pt-2">
+            <button
+              type="submit"
+              class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-2 px-4 text-sm rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              Search Employees
+            </button>
+            
+            <button
+              type="button"
+              (click)="clearSearch()"
+              class="px-4 py-2 bg-gray-100 text-gray-700 font-semibold text-sm rounded-lg hover:bg-gray-200 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Reset
+            </button>
+          </div>
+        </form>
       </div>
 
       <!-- List Body -->
@@ -112,12 +257,26 @@
           <!-- Empty State -->
           <div *ngIf="!people || people.length === 0" class="text-center py-10">
             <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg *ngIf="!isSearchMode" class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
               </svg>
+              <svg *ngIf="isSearchMode" class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
             </div>
-            <h3 class="text-base font-medium text-gray-900 mb-2">No employees found</h3>
-            <p class="text-gray-500 mb-3 text-sm">Get started by adding your first employee to the system.</p>
+            <h3 class="text-base font-medium text-gray-900 mb-2">
+              {{ isSearchMode ? 'No matching employees found' : 'No employees found' }}
+            </h3>
+            <p class="text-gray-500 mb-3 text-sm">
+              {{ isSearchMode ? 'Try adjusting your search criteria to find more results.' : 'Get started by adding your first employee to the system.' }}
+            </p>
+            <button
+              *ngIf="isSearchMode"
+              (click)="clearSearch()"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+            >
+              Clear Search & View All
+            </button>
           </div>
 
           <!-- Pagination -->
