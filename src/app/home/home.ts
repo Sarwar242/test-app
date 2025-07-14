@@ -47,11 +47,9 @@ export class HomeComponent implements OnInit {
     this.searchForm = this.fb.group({
       name: [''],
       gender: [''],
-      minAge: [''],
-      maxAge: [''],
+      age: [''],
       birthPlace: [''],
-      dobFrom: [''],
-      dobTo: ['']
+      dob: ['']
     });
   }
 

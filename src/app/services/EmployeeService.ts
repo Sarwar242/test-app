@@ -42,20 +42,14 @@ export class EmployeeService {
     if (searchCriteria.gender && searchCriteria.gender.trim()) {
       params.append('gender', searchCriteria.gender.trim());
     }
-    if (searchCriteria.minAge !== null && searchCriteria.minAge !== undefined) {
-      params.append('minAge', searchCriteria.minAge.toString());
-    }
-    if (searchCriteria.maxAge !== null && searchCriteria.maxAge !== undefined) {
-      params.append('maxAge', searchCriteria.maxAge.toString());
+    if (searchCriteria.age !== null && searchCriteria.age !== undefined) {
+      params.append('age', searchCriteria.age.toString());
     }
     if (searchCriteria.birthPlace && searchCriteria.birthPlace.trim()) {
       params.append('birthPlace', searchCriteria.birthPlace.trim());
     }
-    if (searchCriteria.dobFrom && searchCriteria.dobFrom.trim()) {
-      params.append('dobFrom', searchCriteria.dobFrom.trim());
-    }
-    if (searchCriteria.dobTo && searchCriteria.dobTo.trim()) {
-      params.append('dobTo', searchCriteria.dobTo.trim());
+    if (searchCriteria.dob && searchCriteria.dob.trim()) {
+      params.append('dob', searchCriteria.dob.trim());
     }
 
     const url = `${environment.API_ROOT}/v1/employees/search?${params.toString()}`;

@@ -10,9 +10,7 @@ export interface IEmployee {
 export interface IEmployeeSearchCriteria {
     name?: string;
     gender?: string;
-    minAge?: number;
-    maxAge?: number;
+    age?: number;
     birthPlace?: string;
-    dobFrom?: string;
-    dobTo?: string;
+    dob?: string;
 }
