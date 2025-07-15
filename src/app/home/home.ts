@@ -59,17 +59,14 @@ export class HomeComponent implements OnInit {
   
   fetchEmployees(page: number = 0) {
     if (this.fetching) {
-      console.log('Already fetching employees, skipping...');
       return;
     }
 
     this.fetching = true;
     this.loading = true;
-    console.log('=== FETCH EMPLOYEES START ===');
-    console.log('Loading state set to true');
-    console.log('Fetching page:', page);
-
-
+    // console.log('=== FETCH EMPLOYEES START ===');
+    // console.log('Loading state set to true');
+    // console.log('Fetching page:', page);
 
     this.service.getAllEmployees(page, this.pageSize).subscribe({
       next: (response) => {
@@ -86,19 +83,17 @@ export class HomeComponent implements OnInit {
             this.hasNext = response.last === false;
             this.hasPrevious = response.first === false;
             
-            console.log('Pagination info:', {
-              currentPage: this.currentPage,
-              pageSize: this.pageSize,
-              totalElements: this.totalElements,
-              totalPages: this.totalPages,
-              hasNext: this.hasNext,
-              hasPrevious: this.hasPrevious
-            });
+            // console.log('Pagination info:', {
+            //   currentPage: this.currentPage,
+            //   pageSize: this.pageSize,
+            //   totalElements: this.totalElements,
+            //   totalPages: this.totalPages,
+            //   hasNext: this.hasNext,
+            //   hasPrevious: this.hasPrevious
+            // });
           } else if (response && response.content && !Array.isArray(response.content)) {
-            console.warn('Content is not an array:', response.content);
             this.people = [];
           } else if (response && !response.content) {
-            console.warn('No content in response:', response);
             this.people = [];
           } else {
             console.warn('Invalid response structure:', response);
@@ -106,14 +101,12 @@ export class HomeComponent implements OnInit {
           }
         } catch (e) {
           console.error('Exception in next handler:', e);
-          alert('Error processing employee data. See console for details.');
           this.people = [];
         }
         
         this.loading = false;
         this.fetching = false;
-        console.log('=== FETCH EMPLOYEES COMPLETED ===');
-        this.cdr.detectChanges(); // Force change detection
+        this.cdr.detectChanges();
       },
       error: (error) => {
         this.people = [];
@@ -147,14 +140,11 @@ export class HomeComponent implements OnInit {
   updateEmployee() {
     if (this.employeeForm.valid && this.editingIndex !== null) {
       this.saving = true;
-      console.log('Starting update for employee:', this.employeeForm.value);
       this.service.updateEmployee(this.employeeForm.value).subscribe({
         next: (res) => {
-          console.log('Employee updated successfully:', res);
           this.resetForm();
           this.saving = false;
           this.cdr.detectChanges(); // Force change detection
-          console.log('About to fetch employees after update...');
           this.fetchEmployees(this.currentPage); // Refresh the current page
         },
         error: (error) => {
@@ -172,13 +162,13 @@ export class HomeComponent implements OnInit {
     if (employee.dob) {
       employee.dob = employee.dob.split('T')[0];
     }
+    // id is set for editing
     this.employeeForm.setValue(employee);
   }
 
   deleteEmployee(index: number, id: number) {
     this.service.deleteEmployee(id).subscribe({
               next: (res) => {
-          console.log('Employee deleted:', res);
           this.cdr.detectChanges(); // Force change detection
           this.fetchEmployees(this.currentPage); // Refresh the current page
           if (this.editingIndex === index) {
@@ -211,8 +201,7 @@ export class HomeComponent implements OnInit {
     console.log('=== TESTING API DIRECTLY ===');
     this.service.getAllEmployees().subscribe({
       next: (response) => {
-        console.log('Test API response:', response);
-        alert('API test successful! Check console for details.');
+        // console.log('Test API response:', response);
         this.cdr.detectChanges(); // Force change detection
       },
       error: (error) => {
@@ -270,27 +259,24 @@ export class HomeComponent implements OnInit {
 
   searchEmployees(page: number = 0) {
     if (this.fetching) {
-      console.log('Already fetching employees, skipping...');
       return;
     }
 
     this.fetching = true;
     this.loading = true;
-    console.log('=== SEARCH EMPLOYEES START ===');
-    console.log('Search criteria:', this.searchCriteria);
-    console.log('Searching page:', page);
-
-
+    // console.log('=== SEARCH EMPLOYEES START ===');
+    // console.log('Search criteria:', this.searchCriteria);
+    // console.log('Searching page:', page);
 
     this.service.searchEmployees(this.searchCriteria, page, this.pageSize).subscribe({
       next: (response) => {
         console.log('=== SEARCH RESPONSE RECEIVED ===');
         try {
-          console.log('Search response:', response);
+          // console.log('Search response:', response);
           
           if (response && response.content && Array.isArray(response.content)) {
             this.people = response.content as IEmployee[];
-            console.log(`Search found ${this.people.length} employees`);
+            // console.log(`Search found ${this.people.length} employees`);
             
             // Update pagination info
             this.currentPage = response.number || 0;
@@ -305,13 +291,12 @@ export class HomeComponent implements OnInit {
           }
         } catch (e) {
           console.error('Exception in search handler:', e);
-          alert('Error processing search results. See console for details.');
           this.people = [];
         }
         
         this.loading = false;
         this.fetching = false;
-        console.log('=== SEARCH EMPLOYEES COMPLETED ===');
+        // console.log('=== SEARCH EMPLOYEES COMPLETED ===');
         this.cdr.detectChanges();
       },
       error: (error) => {

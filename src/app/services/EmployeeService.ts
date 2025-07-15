@@ -74,7 +74,7 @@ export class EmployeeService {
       'Access-Control-Allow-Origin': "*"
     });
 
-    return this.httpClient.put(`${environment.API_ROOT}/v1/employee/${req.id}`, req, {
+    return this.httpClient.put(`${environment.API_ROOT}/v1/employee`, req, {
       headers: reqHeader,
     });
   }
