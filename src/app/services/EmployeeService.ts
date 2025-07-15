@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { IEmployee } from '../models/Employee';
+import { IEmployee, IEmployeeSearchCriteria } from '../models/Employee';
 import { Observable } from 'rxjs';
 import { ResponseData } from '../models/Responses';
 import { environment } from '../../environments/environment.development';
@@ -24,6 +24,38 @@ export class EmployeeService {
     console.log('Service: Observable created, returning...');
     return observable;
   }
+
+  searchEmployees(searchCriteria: IEmployeeSearchCriteria, page: number = 0, size: number = 10): Observable<ResponseData<IEmployee[]>> {
+    var reqHeader = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    // Build query parameters
+    let params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+
+    // Add search criteria to params
+    if (searchCriteria.name && searchCriteria.name.trim()) {
+      params.append('name', searchCriteria.name.trim());
+    }
+    if (searchCriteria.gender && searchCriteria.gender.trim()) {
+      params.append('gender', searchCriteria.gender.trim());
+    }
+    if (searchCriteria.age !== null && searchCriteria.age !== undefined) {
+      params.append('age', searchCriteria.age.toString());
+    }
+    if (searchCriteria.birthPlace && searchCriteria.birthPlace.trim()) {
+      params.append('birthPlace', searchCriteria.birthPlace.trim());
+    }
+    if (searchCriteria.dob && searchCriteria.dob.trim()) {
+      params.append('dob', searchCriteria.dob.trim());
+    }
+
+    const url = `${environment.API_ROOT}/v1/employees/search?${params.toString()}`;
+    console.log('Service: Making search request to', url);
+    return this.httpClient.get(url, { headers: reqHeader });
+  }
   
   createEmployee(req: IEmployee): Observable<ResponseData<IEmployee>> {
     var reqHeader = new HttpHeaders({
@@ -42,7 +74,7 @@ export class EmployeeService {
       'Access-Control-Allow-Origin': "*"
     });
 
-    return this.httpClient.put(`${environment.API_ROOT}/v1/employee/${req.id}`, req, {
+    return this.httpClient.put(`${environment.API_ROOT}/v1/employee`, req, {
       headers: reqHeader,
     });
   }

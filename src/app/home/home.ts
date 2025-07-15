@@ -1,14 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, FormsModule } from '@angular/forms';
 import { NgClass, NgIf, NgFor, DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { EmployeeService } from '../services/EmployeeService';
-import { IEmployee } from '../models/Employee';
+import { IEmployee, IEmployeeSearchCriteria, IEducationDetail } from '../models/Employee';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [ReactiveFormsModule, NgClass, NgIf, NgFor, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, FormsModule, NgClass, NgIf, NgFor, DatePipe],
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
@@ -17,6 +16,11 @@ export class HomeComponent implements OnInit {
   loading: boolean = false;
   saving: boolean = false;
   private fetching: boolean = false;
+  
+  // Search functionality
+  isSearchMode: boolean = false;
+  searchCriteria: IEmployeeSearchCriteria = {};
+  showSearchPanel: boolean = false;
   
   // Pagination properties
   currentPage: number = 0;
@@ -27,7 +31,14 @@ export class HomeComponent implements OnInit {
   hasPrevious: boolean = false;
 
   employeeForm: FormGroup;
+  searchForm: FormGroup;
   editingIndex: number | null = null;
+
+  // Education Details functionality
+  showEducationModal: boolean = false;
+  selectedEmployeeForEducation: IEmployee | null = null;
+  educationTypes = ['SSC' , 'HSC' , 'UnderGraduate' , 'Graduate' , 'PostGraduate'];
+  savingEducation: boolean = false;
 
   constructor(private fb: FormBuilder, private service: EmployeeService, private cdr: ChangeDetectorRef) {
     this.employeeForm = this.fb.group({
@@ -38,6 +49,14 @@ export class HomeComponent implements OnInit {
       dob: ['', Validators.required],
       birthPlace: ['', Validators.required]
     });
+
+    this.searchForm = this.fb.group({
+      name: [''],
+      gender: [''],
+      age: [''],
+      birthPlace: [''],
+      dob: ['']
+    });
   }
 
   ngOnInit(): void {
@@ -46,41 +65,21 @@ export class HomeComponent implements OnInit {
   
   fetchEmployees(page: number = 0) {
     if (this.fetching) {
-      console.log('Already fetching employees, skipping...');
       return;
     }
 
     this.fetching = true;
     this.loading = true;
-    console.log('=== FETCH EMPLOYEES START ===');
-    console.log('Loading state set to true');
-    console.log('Fetching page:', page);
+    // console.log('=== FETCH EMPLOYEES START ===');
+    // console.log('Loading state set to true');
+    // console.log('Fetching page:', page);
 
-    // Add a timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (this.loading) {
-        console.error('Request timeout - forcing loading to false');
-        this.loading = false;
-        this.fetching = false;
-        alert('Loading employees timed out. Please check your backend/API.');
-        this.cdr.detectChanges(); // Force change detection
-      }
-    }, 10000); // 10 seconds timeout
-
-    console.log('Making API call to getAllEmployees...');
     this.service.getAllEmployees(page, this.pageSize).subscribe({
       next: (response) => {
-        console.log('=== API RESPONSE RECEIVED ===');
-        clearTimeout(timeout);
         try {
-          console.log('Raw response:', response);
-          console.log('Response type:', typeof response);
-          console.log('Response content:', response?.content);
-          console.log('Content is array:', Array.isArray(response?.content));
           
           if (response && response.content && Array.isArray(response.content)) {
             this.people = response.content as IEmployee[];
-            console.log(`Successfully loaded ${this.people.length} employees`);
             
             // Update pagination info
             this.currentPage = response.number || 0;
@@ -90,19 +89,17 @@ export class HomeComponent implements OnInit {
             this.hasNext = response.last === false;
             this.hasPrevious = response.first === false;
             
-            console.log('Pagination info:', {
-              currentPage: this.currentPage,
-              pageSize: this.pageSize,
-              totalElements: this.totalElements,
-              totalPages: this.totalPages,
-              hasNext: this.hasNext,
-              hasPrevious: this.hasPrevious
-            });
+            // console.log('Pagination info:', {
+            //   currentPage: this.currentPage,
+            //   pageSize: this.pageSize,
+            //   totalElements: this.totalElements,
+            //   totalPages: this.totalPages,
+            //   hasNext: this.hasNext,
+            //   hasPrevious: this.hasPrevious
+            // });
           } else if (response && response.content && !Array.isArray(response.content)) {
-            console.warn('Content is not an array:', response.content);
             this.people = [];
           } else if (response && !response.content) {
-            console.warn('No content in response:', response);
             this.people = [];
           } else {
             console.warn('Invalid response structure:', response);
@@ -110,23 +107,17 @@ export class HomeComponent implements OnInit {
           }
         } catch (e) {
           console.error('Exception in next handler:', e);
-          alert('Error processing employee data. See console for details.');
           this.people = [];
         }
         
-        console.log('Setting loading to false...');
         this.loading = false;
         this.fetching = false;
-        console.log('=== FETCH EMPLOYEES COMPLETED ===');
-        this.cdr.detectChanges(); // Force change detection
+        this.cdr.detectChanges();
       },
       error: (error) => {
-        console.log('=== API ERROR RECEIVED ===');
-        clearTimeout(timeout);
         this.people = [];
         this.loading = false;
         this.fetching = false;
-        console.log('=== FETCH EMPLOYEES FAILED ===');
         this.cdr.detectChanges(); // Force change detection
       }
     });
@@ -155,14 +146,11 @@ export class HomeComponent implements OnInit {
   updateEmployee() {
     if (this.employeeForm.valid && this.editingIndex !== null) {
       this.saving = true;
-      console.log('Starting update for employee:', this.employeeForm.value);
       this.service.updateEmployee(this.employeeForm.value).subscribe({
         next: (res) => {
-          console.log('Employee updated successfully:', res);
           this.resetForm();
           this.saving = false;
           this.cdr.detectChanges(); // Force change detection
-          console.log('About to fetch employees after update...');
           this.fetchEmployees(this.currentPage); // Refresh the current page
         },
         error: (error) => {
@@ -180,13 +168,13 @@ export class HomeComponent implements OnInit {
     if (employee.dob) {
       employee.dob = employee.dob.split('T')[0];
     }
+    // id is set for editing
     this.employeeForm.setValue(employee);
   }
 
   deleteEmployee(index: number, id: number) {
     this.service.deleteEmployee(id).subscribe({
               next: (res) => {
-          console.log('Employee deleted:', res);
           this.cdr.detectChanges(); // Force change detection
           this.fetchEmployees(this.currentPage); // Refresh the current page
           if (this.editingIndex === index) {
@@ -219,8 +207,7 @@ export class HomeComponent implements OnInit {
     console.log('=== TESTING API DIRECTLY ===');
     this.service.getAllEmployees().subscribe({
       next: (response) => {
-        console.log('Test API response:', response);
-        alert('API test successful! Check console for details.');
+        // console.log('Test API response:', response);
         this.cdr.detectChanges(); // Force change detection
       },
       error: (error) => {
@@ -232,12 +219,6 @@ export class HomeComponent implements OnInit {
   }
 
   // Pagination methods
-  goToPage(page: number) {
-    if (page >= 0 && page < this.totalPages) {
-      this.fetchEmployees(page);
-    }
-  }
-
   nextPage() {
     if (this.hasNext) {
       this.goToPage(this.currentPage + 1);
@@ -261,6 +242,277 @@ export class HomeComponent implements OnInit {
     }
     
     return pages;
+  }
+
+  // Search functionality methods
+  toggleSearchPanel() {
+    this.showSearchPanel = !this.showSearchPanel;
+    if (!this.showSearchPanel) {
+      this.clearSearch();
+    }
+  }
+
+  performSearch() {
+    if (this.searchForm.invalid) {
+      return;
+    }
+
+    this.searchCriteria = { ...this.searchForm.value };
+    this.isSearchMode = true;
+    this.currentPage = 0; // Reset to first page for new search
+    this.searchEmployees();
+  }
+
+  searchEmployees(page: number = 0) {
+    if (this.fetching) {
+      return;
+    }
+
+    this.fetching = true;
+    this.loading = true;
+    // console.log('=== SEARCH EMPLOYEES START ===');
+    // console.log('Search criteria:', this.searchCriteria);
+    // console.log('Searching page:', page);
+
+    this.service.searchEmployees(this.searchCriteria, page, this.pageSize).subscribe({
+      next: (response) => {
+        console.log('=== SEARCH RESPONSE RECEIVED ===');
+        try {
+          // console.log('Search response:', response);
+          
+          if (response && response.content && Array.isArray(response.content)) {
+            this.people = response.content as IEmployee[];
+            // console.log(`Search found ${this.people.length} employees`);
+            
+            // Update pagination info
+            this.currentPage = response.number || 0;
+            this.pageSize = response.size || 10;
+            this.totalElements = response.totalElements || 0;
+            this.totalPages = response.totalPages || 0;
+            this.hasNext = response.last === false;
+            this.hasPrevious = response.first === false;
+          } else {
+            console.warn('Invalid search response structure:', response);
+            this.people = [];
+          }
+        } catch (e) {
+          console.error('Exception in search handler:', e);
+          this.people = [];
+        }
+        
+        this.loading = false;
+        this.fetching = false;
+        // console.log('=== SEARCH EMPLOYEES COMPLETED ===');
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.log('=== SEARCH ERROR RECEIVED ===');
+        console.error('Search error:', error);
+        this.people = [];
+        this.loading = false;
+        this.fetching = false;
+        alert('Search failed. Please try again.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  clearSearch() {
+    this.searchForm.reset();
+    this.searchCriteria = {};
+    this.isSearchMode = false;
+    this.currentPage = 0;
+    this.fetchEmployees(); // Fetch all employees
+  }
+
+  // Override pagination methods to handle search mode
+  goToPage(page: number) {
+    if (page >= 0 && page < this.totalPages) {
+      if (this.isSearchMode) {
+        this.searchEmployees(page);
+      } else {
+        this.fetchEmployees(page);
+      }
+    }
+  }
+
+  // Education Details Methods
+  viewEducationDetails(employee: IEmployee) {
+    this.selectedEmployeeForEducation = employee;
+    this.showEducationModal = true;
+  }
+
+  closeEducationModal() {
+    this.showEducationModal = false;
+    this.selectedEmployeeForEducation = null;
+    this.savingEducation = false;
+  }
+
+  addEducationDetail() {
+    if (!this.selectedEmployeeForEducation) return;
+
+    // Check if all education types are already used
+    const availableTypes = this.getAvailableEducationTypes();
+    if (availableTypes.length === 0) {
+      alert('All education types have been added. You cannot add more education details.');
+      return;
+    }
+
+    const newEducation: IEducationDetail = {
+      type: availableTypes[0] as 'SSC' | 'HSC' | 'UnderGraduate' | 'Graduate' | 'PostGraduate',
+      institutionName: '',
+      board: '',
+      passingYear: '',
+      result: '',
+      scale: 4
+    };
+
+    if (!this.selectedEmployeeForEducation.educationDetails) {
+      this.selectedEmployeeForEducation.educationDetails = [];
+    }
+
+    this.selectedEmployeeForEducation.educationDetails.push(newEducation);
+  }
+
+  // Get education types that are not already selected
+  getAvailableEducationTypes(): string[] {
+    if (!this.selectedEmployeeForEducation?.educationDetails) {
+      return [...this.educationTypes];
+    }
+
+    const usedTypes = this.selectedEmployeeForEducation.educationDetails.map(ed => ed.type);
+    return this.educationTypes.filter(type => !usedTypes.includes(type as any));
+  }
+
+  // Get education types that are available for a specific education detail (for dropdown)
+  getAvailableEducationTypesForDetail(currentType: string): string[] {
+    if (!this.selectedEmployeeForEducation?.educationDetails) {
+      return [...this.educationTypes];
+    }
+
+    const usedTypes = this.selectedEmployeeForEducation.educationDetails
+      .map(ed => ed.type)
+      .filter(type => type !== currentType); // Exclude current type so user can keep the same selection
+
+    return this.educationTypes.filter(type => !usedTypes.includes(type as any));
+  }
+
+  // Check if we can add more education details
+  canAddMoreEducation(): boolean {
+    return this.getAvailableEducationTypes().length > 0;
+  }
+
+  // Validate education type change to prevent duplicates
+  onEducationTypeChange(education: IEducationDetail, newType: string, index: number) {
+    if (!this.selectedEmployeeForEducation?.educationDetails) return;
+
+    // Check if the new type is already used by another education detail
+    const isTypeUsed = this.selectedEmployeeForEducation.educationDetails.some((ed, i) => 
+      i !== index && ed.type === newType
+    );
+
+    if (isTypeUsed) {
+      alert(`Education type "${newType}" is already selected. Please choose a different type.`);
+      // Reset to original type - we'll handle this in the template
+      return false;
+    }
+
+    education.type = newType as 'SSC' | 'HSC' | 'UnderGraduate' | 'Graduate' | 'PostGraduate';
+    return true;
+  }
+
+  removeEducationDetail(index: number) {
+    if (!this.selectedEmployeeForEducation?.educationDetails) return;
+    
+    const educationDetail = this.selectedEmployeeForEducation.educationDetails[index];
+    const message = educationDetail.id 
+      ? 'Are you sure you want to remove this education detail? This will update the employee record.' 
+      : 'Are you sure you want to remove this education detail?';
+    
+    if (confirm(message)) {
+      // Remove from local array first
+      this.selectedEmployeeForEducation.educationDetails.splice(index, 1);
+      
+      // If the education detail had an ID (was loaded from server), update the employee to persist the removal
+      // For new education details (no ID), no API call is needed until save is clicked
+      if (educationDetail.id && this.selectedEmployeeForEducation.id) {
+        this.service.updateEmployee(this.selectedEmployeeForEducation).subscribe({
+          next: (response) => {
+            console.log('Employee updated after education removal:', response);
+            // Update the local data with the response from server
+            if (response && response.content) {
+              const employeeIndex = this.people.findIndex(emp => emp.id === this.selectedEmployeeForEducation!.id);
+              if (employeeIndex !== -1) {
+                this.people[employeeIndex] = { ...response.content };
+              }
+              this.selectedEmployeeForEducation = { ...response.content };
+            }
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error updating employee after education removal:', error);
+            // Revert the local change if API call failed
+            this.selectedEmployeeForEducation!.educationDetails!.splice(index, 0, educationDetail);
+            alert('Failed to remove education detail. Please try again.');
+            this.cdr.detectChanges();
+          }
+        });
+      } else {
+        // If no ID, just update the local state (not yet saved to server)
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  saveEducationDetails() {
+    if (!this.selectedEmployeeForEducation) return;
+
+    this.savingEducation = true;
+    
+    if (this.selectedEmployeeForEducation.id) {
+      this.service.updateEmployee(this.selectedEmployeeForEducation).subscribe({
+        next: (response) => {
+           // Update the local data with the response from server
+          if (response && response.content) {
+            // Find and update the employee in the local array
+            const employeeIndex = this.people.findIndex(emp => emp.id === this.selectedEmployeeForEducation!.id);
+            if (employeeIndex !== -1) {
+              this.people[employeeIndex] = { ...response.content };
+            }
+            // Update the selected employee data as well
+            this.selectedEmployeeForEducation = { ...response.content };
+          }
+          this.savingEducation = false;
+          this.closeEducationModal();
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error updating employee with education details:', error);
+          this.savingEducation = false;
+          alert('Failed to save education details. Please try again.');
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      // If no employee ID, just close the modal (shouldn't happen in normal flow)
+      console.warn('No employee ID found, cannot save education details');
+      this.savingEducation = false;
+      this.closeEducationModal();
+    }
+  }
+
+  getEducationDisplayText(education: IEducationDetail): string {
+    return `${education.type} - ${education.institutionName} (${education.passingYear})`;
+  }
+
+  hasEducationDetails(): boolean {
+    return this.selectedEmployeeForEducation?.educationDetails !== undefined && 
+           this.selectedEmployeeForEducation?.educationDetails !== null &&
+           this.selectedEmployeeForEducation.educationDetails.length > 0;
+  }
+
+  getEducationDetails(): IEducationDetail[] {
+    return this.selectedEmployeeForEducation?.educationDetails || [];
   }
 
   // Make Math available in template
