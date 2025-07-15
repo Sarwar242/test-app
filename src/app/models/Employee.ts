@@ -1,3 +1,13 @@
+export interface IEducationDetail {
+    id?: number;
+    type: 'SSC' | 'HSC' | 'UnderGraduate' | 'Graduate' | 'PostGraduate';
+    institutionName: string;
+    board: string;
+    passingYear: string;
+    result: string;
+    scale: number;
+}
+
 export interface IEmployee {
     id?: number;
     name: string;
@@ -5,6 +15,7 @@ export interface IEmployee {
     gender: string;
     dob: string;
     birthPlace: string;
+    educationDetails?: IEducationDetail[];
   }
 
 export interface IEmployeeSearchCriteria {

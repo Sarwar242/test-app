@@ -1,13 +1,13 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray, FormsModule } from '@angular/forms';
 import { NgClass, NgIf, NgFor, DatePipe } from '@angular/common';
 import { EmployeeService } from '../services/EmployeeService';
-import { IEmployee, IEmployeeSearchCriteria } from '../models/Employee';
+import { IEmployee, IEmployeeSearchCriteria, IEducationDetail } from '../models/Employee';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [ReactiveFormsModule, NgClass, NgIf, NgFor, DatePipe],
+  imports: [ReactiveFormsModule, FormsModule, NgClass, NgIf, NgFor, DatePipe],
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
@@ -33,6 +33,12 @@ export class HomeComponent implements OnInit {
   employeeForm: FormGroup;
   searchForm: FormGroup;
   editingIndex: number | null = null;
+
+  // Education Details functionality
+  showEducationModal: boolean = false;
+  selectedEmployeeForEducation: IEmployee | null = null;
+  educationTypes = ['SSC' , 'HSC' , 'UnderGraduate' , 'Graduate' , 'PostGraduate'];
+  savingEducation: boolean = false;
 
   constructor(private fb: FormBuilder, private service: EmployeeService, private cdr: ChangeDetectorRef) {
     this.employeeForm = this.fb.group({
@@ -328,6 +334,185 @@ export class HomeComponent implements OnInit {
         this.fetchEmployees(page);
       }
     }
+  }
+
+  // Education Details Methods
+  viewEducationDetails(employee: IEmployee) {
+    this.selectedEmployeeForEducation = employee;
+    this.showEducationModal = true;
+  }
+
+  closeEducationModal() {
+    this.showEducationModal = false;
+    this.selectedEmployeeForEducation = null;
+    this.savingEducation = false;
+  }
+
+  addEducationDetail() {
+    if (!this.selectedEmployeeForEducation) return;
+
+    // Check if all education types are already used
+    const availableTypes = this.getAvailableEducationTypes();
+    if (availableTypes.length === 0) {
+      alert('All education types have been added. You cannot add more education details.');
+      return;
+    }
+
+    const newEducation: IEducationDetail = {
+      type: availableTypes[0] as 'SSC' | 'HSC' | 'UnderGraduate' | 'Graduate' | 'PostGraduate',
+      institutionName: '',
+      board: '',
+      passingYear: '',
+      result: '',
+      scale: 4
+    };
+
+    if (!this.selectedEmployeeForEducation.educationDetails) {
+      this.selectedEmployeeForEducation.educationDetails = [];
+    }
+
+    this.selectedEmployeeForEducation.educationDetails.push(newEducation);
+  }
+
+  // Get education types that are not already selected
+  getAvailableEducationTypes(): string[] {
+    if (!this.selectedEmployeeForEducation?.educationDetails) {
+      return [...this.educationTypes];
+    }
+
+    const usedTypes = this.selectedEmployeeForEducation.educationDetails.map(ed => ed.type);
+    return this.educationTypes.filter(type => !usedTypes.includes(type as any));
+  }
+
+  // Get education types that are available for a specific education detail (for dropdown)
+  getAvailableEducationTypesForDetail(currentType: string): string[] {
+    if (!this.selectedEmployeeForEducation?.educationDetails) {
+      return [...this.educationTypes];
+    }
+
+    const usedTypes = this.selectedEmployeeForEducation.educationDetails
+      .map(ed => ed.type)
+      .filter(type => type !== currentType); // Exclude current type so user can keep the same selection
+
+    return this.educationTypes.filter(type => !usedTypes.includes(type as any));
+  }
+
+  // Check if we can add more education details
+  canAddMoreEducation(): boolean {
+    return this.getAvailableEducationTypes().length > 0;
+  }
+
+  // Validate education type change to prevent duplicates
+  onEducationTypeChange(education: IEducationDetail, newType: string, index: number) {
+    if (!this.selectedEmployeeForEducation?.educationDetails) return;
+
+    // Check if the new type is already used by another education detail
+    const isTypeUsed = this.selectedEmployeeForEducation.educationDetails.some((ed, i) => 
+      i !== index && ed.type === newType
+    );
+
+    if (isTypeUsed) {
+      alert(`Education type "${newType}" is already selected. Please choose a different type.`);
+      // Reset to original type - we'll handle this in the template
+      return false;
+    }
+
+    education.type = newType as 'SSC' | 'HSC' | 'UnderGraduate' | 'Graduate' | 'PostGraduate';
+    return true;
+  }
+
+  removeEducationDetail(index: number) {
+    if (!this.selectedEmployeeForEducation?.educationDetails) return;
+    
+    const educationDetail = this.selectedEmployeeForEducation.educationDetails[index];
+    const message = educationDetail.id 
+      ? 'Are you sure you want to remove this education detail? This will update the employee record.' 
+      : 'Are you sure you want to remove this education detail?';
+    
+    if (confirm(message)) {
+      // Remove from local array first
+      this.selectedEmployeeForEducation.educationDetails.splice(index, 1);
+      
+      // If the education detail had an ID (was loaded from server), update the employee to persist the removal
+      // For new education details (no ID), no API call is needed until save is clicked
+      if (educationDetail.id && this.selectedEmployeeForEducation.id) {
+        this.service.updateEmployee(this.selectedEmployeeForEducation).subscribe({
+          next: (response) => {
+            console.log('Employee updated after education removal:', response);
+            // Update the local data with the response from server
+            if (response && response.content) {
+              const employeeIndex = this.people.findIndex(emp => emp.id === this.selectedEmployeeForEducation!.id);
+              if (employeeIndex !== -1) {
+                this.people[employeeIndex] = { ...response.content };
+              }
+              this.selectedEmployeeForEducation = { ...response.content };
+            }
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error updating employee after education removal:', error);
+            // Revert the local change if API call failed
+            this.selectedEmployeeForEducation!.educationDetails!.splice(index, 0, educationDetail);
+            alert('Failed to remove education detail. Please try again.');
+            this.cdr.detectChanges();
+          }
+        });
+      } else {
+        // If no ID, just update the local state (not yet saved to server)
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  saveEducationDetails() {
+    if (!this.selectedEmployeeForEducation) return;
+
+    this.savingEducation = true;
+    
+    if (this.selectedEmployeeForEducation.id) {
+      this.service.updateEmployee(this.selectedEmployeeForEducation).subscribe({
+        next: (response) => {
+           // Update the local data with the response from server
+          if (response && response.content) {
+            // Find and update the employee in the local array
+            const employeeIndex = this.people.findIndex(emp => emp.id === this.selectedEmployeeForEducation!.id);
+            if (employeeIndex !== -1) {
+              this.people[employeeIndex] = { ...response.content };
+            }
+            // Update the selected employee data as well
+            this.selectedEmployeeForEducation = { ...response.content };
+          }
+          this.savingEducation = false;
+          this.closeEducationModal();
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error updating employee with education details:', error);
+          this.savingEducation = false;
+          alert('Failed to save education details. Please try again.');
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      // If no employee ID, just close the modal (shouldn't happen in normal flow)
+      console.warn('No employee ID found, cannot save education details');
+      this.savingEducation = false;
+      this.closeEducationModal();
+    }
+  }
+
+  getEducationDisplayText(education: IEducationDetail): string {
+    return `${education.type} - ${education.institutionName} (${education.passingYear})`;
+  }
+
+  hasEducationDetails(): boolean {
+    return this.selectedEmployeeForEducation?.educationDetails !== undefined && 
+           this.selectedEmployeeForEducation?.educationDetails !== null &&
+           this.selectedEmployeeForEducation.educationDetails.length > 0;
+  }
+
+  getEducationDetails(): IEducationDetail[] {
+    return this.selectedEmployeeForEducation?.educationDetails || [];
   }
 
   // Make Math available in template
