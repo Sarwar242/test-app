@@ -305,8 +305,8 @@ DELETE /api/v1/employee/{id}    # Delete employee
 ## 🚀 Getting Started
 
 ### **Prerequisites**
-- Node.js 18+
-- Angular CLI 17+
+- Node.js 22
+- Angular 20
 - VS Code (recommended)
 
 ### **Installation Steps**
