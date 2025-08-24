@@ -1,0 +1,51 @@
+<!-- Layout Wrapper with Enhanced Background -->
+<div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-6 px-4 lg:px-8">
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- Page Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Employee Management System</h1>
+      <p class="text-base text-gray-600">Manage your workforce efficiently and professionally</p>
+      
+      <!-- Navigation Menu -->
+      <nav class="mt-6 space-x-4">
+        <a 
+          routerLink="/home" 
+          routerLinkActive="bg-orange-600"
+          [routerLinkActiveOptions]="{exact: true}"
+          class="inline-flex items-center gap-2 bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-600 transition-all duration-200"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          Home
+        </a>
+        <a 
+          routerLink="/test" 
+          routerLinkActive="bg-indigo-600"
+          [routerLinkActiveOptions]="{exact: true}"
+          class="inline-flex items-center gap-2 bg-indigo-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-600 transition-all duration-200"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+          Test Component
+        </a>
+        <a 
+          routerLink="/hello" 
+          routerLinkActive="bg-purple-600"
+          [routerLinkActiveOptions]="{exact: true}"
+          class="inline-flex items-center gap-2 bg-purple-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-600 transition-all duration-200"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          Hello Component
+        </a>
+      </nav>
+    </div>
+
+    <!-- Router Outlet for Child Routes -->
+    <router-outlet></router-outlet>
+  </div>
+</div> 
